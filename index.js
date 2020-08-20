@@ -1,33 +1,30 @@
-const axios = require('axios');
-const cheerio = require('cheerio');
+const axios = require("axios");
+const cheerio = require("cheerio");
 
-const url =
-    "https://en.wikipedia.org/wiki/List_of_presidents_of_the_United_States";
-const searchWord = "Lincoln";
+exports.handler = async (event) => {
+    const { queryStringParameters } = event;
+    try {
+        const res = await axios.get(queryStringParameters.url);
+        const $ = await cheerio.load(res.data);
+        const body = $("body").text().toLowerCase();
 
-const getWebScrape = async () => {
-  try {
-    const response = await axios.get(url);
-    const $ = await cheerio.load(response.data);
-    const body = $('body').text().toLowerCase();
-    const searchTerm = searchWord.toLowerCase();
-    //console.log(body);
-    //console.log(typeof body);
-    let matchingTerms = 0;
+        let matchingTerms = 0;
+        const searchTerm = queryStringParameters.query.toLowerCase();
+        body.split(" ").map((word) => {
+            if (word.match(searchTerm)) {
+                matchingTerms += 1;
+            }
+        });
 
-    body.split(" ").map((word) => {
-      if (word.match(searchTerm)) {
-        matchingTerms += 1;
-      }
-    })
-
-    console.log(`There are ${matchingTerms} instances of ${searchTerm}`);
-
-
-  } catch (error) {
-    console.log(error);
-  }
-
-}
-
-getWebScrape();
+        return {
+            statusCode: 200,
+            body: matchingTerms,
+        };
+    } catch (e) {
+        console.log(e);
+        return {
+            statusCode: 400,
+            body: e.message,
+        };
+    }
+};
